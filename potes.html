@@ -46,6 +46,7 @@
   button.smash{border-color:#4a3320;color:var(--gold)}
   button.smash:hover{background:#2a2113;border-color:#6b4a24}
 
+  /* ---- bloco do Livre: nao e um pote, e o saldo ---- */
   .livrebox{
     background:linear-gradient(180deg,#1e1b14,#171a21);border:1px solid #3a3320;
     border-radius:14px;padding:16px 18px;margin-bottom:18px;
@@ -77,7 +78,28 @@
     font-size:15px;letter-spacing:-2px;user-select:none;flex:none}
   .grip:active{cursor:grabbing}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
-  .rname{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .rtop{display:flex;align-items:center;gap:8px;min-width:0}
+  .rname{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+  .rprog{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums}
+  .rprog .meter{flex:1;min-width:40px;max-width:190px;height:4px}
+  .rpct{font-weight:600;color:var(--accent);flex:none}
+  .rpct.cheio{color:var(--accent)}
+  .rgoal,.rmeses{white-space:nowrap;flex:none}
+  .rmeses::before{content:"· "}
+  /* em tela estreita o medidor vale mais que repetir o valor da meta */
+  @media(max-width:560px){ .rgoal{display:none} .rmeses::before{content:""} }
+
+  /* ---- guias ---- */
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tab{flex:1;text-align:left;padding:9px 14px;border-radius:10px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);cursor:pointer;transition:.13s}
+  .tab:hover{background:var(--card2);color:var(--text)}
+  .tab.on{background:var(--card);border-color:#3c4454;color:var(--text)}
+  .tab .tname{display:block;font-size:13.5px;font-weight:600}
+  .tab .tsum{display:block;font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums;margin-top:1px}
+  .tab.on .tsum{color:var(--muted)}
   .rtags{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;flex:1;min-width:0;
     -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);
     mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)}
@@ -222,6 +244,10 @@
     </span>
   </div>
 
+  <div class="tabs" id="tabs">
+    <button class="tab" data-aba="gasto"><span class="tname">Gastos mensais</span><span class="tsum" id="somaGasto"></span></button>
+    <button class="tab" data-aba="poupanca"><span class="tname">Poupanças</span><span class="tsum" id="somaPoup"></span></button>
+  </div>
   <div class="chips" id="chips"></div>
   <div class="potes" id="potes"></div>
 
@@ -284,8 +310,14 @@ const somaAportes = () => S.potes.filter(p => !p.livre).reduce((a,p) => a + p.ap
 /* o Livre nao entra na lista: ele mora no bloco de cima */
 const guardados = () => S.potes.filter(p => !p.livre);
 const tagsDe = p => Array.isArray(p.tags) ? p.tags : [];
-const todasTags = () => [...new Set(guardados().flatMap(tagsDe))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+/* potes antigos nasceram antes das guias: entram como poupanca */
+const tipoDe = p => p.tipo === "gasto" ? "gasto" : "poupanca";
+const daAba = () => guardados().filter(p => tipoDe(p) === aba);
+const todasTags = () => [...new Set(daAba().flatMap(tagsDe))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+const somaDe = t => guardados().filter(p => tipoDe(p) === t).reduce((a,p)=>a+p.saldo, 0);
 let filtro = "";
+let aba = "gasto";
+try{ const a = localStorage.getItem("potes.aba"); if(a === "gasto" || a === "poupanca") aba = a; }catch(e){}
 
 /* ---------- movimentos ---------- */
 function commit(desc, movs){
@@ -438,6 +470,7 @@ function abrirTransf(fromId){
 
 const lerTags = txt => [...new Set(String(txt||"").split(",")
   .map(t => t.trim().toLowerCase()).filter(Boolean))].slice(0, 6);
+const salvarAba = () => { try{ localStorage.setItem("potes.aba", aba); }catch(e){} };
 
 function abrirPote(poteId){
   const p = poteId ? byId(poteId) : null, isLivre = p && p.livre;
@@ -446,7 +479,11 @@ function abrirPote(poteId){
     (isLivre ? '' :
     '<div><label>Aporte mensal</label><input id="a" inputmode="decimal" value="'+(p?(p.aporte/100).toFixed(2).replace(".",","):"")+'" placeholder="0,00"></div>'+
     '<div><label>Meta (deixe vazio pra não ter)</label><input id="m" inputmode="decimal" value="'+(p&&p.meta?(p.meta/100).toFixed(2).replace(".",","):"")+'"></div>'+
-    '<div><label>Tags (vírgula)</label><input id="t" value="'+(p?esc(tagsDe(p).join(", ")):"")+'" placeholder="mercado, fixo"></div>')+
+    '<div><label>Tags (vírgula)</label><input id="t" value="'+(p?esc(tagsDe(p).join(", ")):"")+'" placeholder="mercado, fixo"></div>'+
+    '<div><label>Guia</label><select id="tp">'+
+      '<option value="gasto"'+((p?tipoDe(p):aba)==="gasto"?" selected":"")+'>Gastos mensais</option>'+
+      '<option value="poupanca"'+((p?tipoDe(p):aba)==="poupanca"?" selected":"")+'>Poupanças</option>'+
+    '</select></div>')+
     (p ? '' : '<div><label>Saldo inicial</label><input id="s" inputmode="decimal" placeholder="0,00"></div>'),
     onOk:(d)=>{
       const nome = d.querySelector("#n").value.trim();
@@ -457,6 +494,8 @@ function abrirPote(poteId){
           const a = parseMoney(d.querySelector("#a").value); p.aporte = Number.isFinite(a)&&a>0 ? a : 0;
           const m = parseMoney(d.querySelector("#m").value); p.meta   = Number.isFinite(m)&&m>0 ? m : 0;
           p.tags = lerTags(d.querySelector("#t").value);
+          p.tipo = d.querySelector("#tp").value;
+          if(tipoDe(p) !== aba){ aba = tipoDe(p); salvarAba(); filtro = ""; }  // segue o pote
         }
         save(); render();
       }else{
@@ -464,7 +503,9 @@ function abrirPote(poteId){
         const m = parseMoney(d.querySelector("#m").value);
         const s = parseMoney(d.querySelector("#s").value);
         const np = {id:uid(), nome, aporte:Number.isFinite(a)&&a>0?a:0, saldo:0,
-                    meta:Number.isFinite(m)&&m>0?m:0, tags:lerTags(d.querySelector("#t").value), livre:false};
+                    meta:Number.isFinite(m)&&m>0?m:0, tags:lerTags(d.querySelector("#t").value),
+                    tipo:d.querySelector("#tp").value, livre:false};
+        if(np.tipo !== aba){ aba = np.tipo; salvarAba(); filtro = ""; }
         S.potes.push(np);
         S.potes.sort((x,y)=> (x.livre?1:0)-(y.livre?1:0));
         if(Number.isFinite(s) && s>0) commit("Criou "+nome, [{poteId:livre().id,delta:-s},{poteId:np.id,delta:s}]);
@@ -818,21 +859,39 @@ function render(){
   document.getElementById("livreSub").textContent =
     "de " + fmt(total()) + " · " + fmt(total() - L.saldo) + " nos potes";
 
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.aba === aba));
+  document.getElementById("somaGasto").textContent = fmt(somaDe("gasto"));
+  document.getElementById("somaPoup").textContent  = fmt(somaDe("poupanca"));
+
   renderChips();
 
-  const lista = guardados().filter(p => !filtro || tagsDe(p).includes(filtro));
+  const lista = daAba().filter(p => !filtro || tagsDe(p).includes(filtro));
   document.getElementById("potes").innerHTML = lista.length === 0
-    ? '<div class="empty">'+(filtro ? "Nenhum pote com essa tag." : "Nenhum pote ainda.")+'</div>'
+    ? '<div class="empty">'+(filtro ? "Nenhum pote com essa tag."
+        : aba === "gasto" ? "Nenhum gasto mensal ainda." : "Nenhuma poupança ainda.")+'</div>'
     : lista.map(p => {
-    const pct = p.meta > 0 ? Math.max(0, Math.min(100, p.saldo/p.meta*100)) : null;
+    const temMeta = p.meta > 0;
+    const pct   = temMeta ? Math.max(0, Math.min(100, p.saldo/p.meta*100)) : null;
+    const meses = (temMeta && p.aporte > 0 && p.saldo < p.meta) ? Math.ceil((p.meta-p.saldo)/p.aporte) : null;
     return '<div class="row" data-row="'+p.id+'">'+
       (filtro ? '' : '<span class="grip" aria-hidden="true">⠿</span>')+
       '<span class="dot"></span>'+
-      '<span class="rname">'+esc(p.nome)+'</span>'+
-      '<span class="rtags">'+tagsDe(p).map(t=>'<span class="rtag">'+esc(t)+'</span>').join("")+'</span>'+
+      '<div class="rmain">'+
+        '<div class="rtop">'+
+          '<span class="rname">'+esc(p.nome)+'</span>'+
+          '<span class="rtags">'+tagsDe(p).map(t=>'<span class="rtag">'+esc(t)+'</span>').join("")+'</span>'+
+        '</div>'+
+        (temMeta
+          ? '<div class="rprog">'+
+              '<span class="meter"><i style="width:'+pct.toFixed(1)+'%"></i></span>'+
+              '<span class="rpct">'+Math.round(pct)+'%</span>'+
+              '<span class="rgoal">de '+fmt(p.meta)+'</span>'+
+              '<span class="rmeses">'+(meses!==null ? meses+' '+(meses===1?"mês":"meses") : "completa")+'</span>'+
+            '</div>'
+          : '')+
+      '</div>'+
       '<span class="rval'+(p.saldo<0?" neg":"")+'">'+fmt(p.saldo)+'</span>'+
       '<span class="chev">›</span>'+
-      (pct!==null?'<i class="rbar" style="width:'+pct.toFixed(1)+'%"></i>':'')+
     '</div>';
   }).join("");
 
@@ -865,6 +924,11 @@ document.getElementById("chips").addEventListener("click", ev => {
   filtro = (filtro === c.dataset.tag) ? "" : c.dataset.tag;
   render();
 });
+document.getElementById("tabs").addEventListener("click", ev => {
+  const t = ev.target.closest(".tab");
+  if(!t || t.dataset.aba === aba) return;
+  aba = t.dataset.aba; filtro = ""; salvarAba(); render();
+});
 
 /* arrastar pela alcinha — pointer events pra funcionar no toque tambem */
 (function(){
@@ -882,10 +946,10 @@ document.getElementById("chips").addEventListener("click", ev => {
     if(!el) return;
     el.classList.remove("dragging");
     const ordem = [...lista.querySelectorAll(".row")].map(r => r.dataset.row);
-    S.potes.sort((a,b) => {
-      if(a.livre !== b.livre) return a.livre ? 1 : -1;
-      return ordem.indexOf(a.id) - ordem.indexOf(b.id);
-    });
+    const visiveis = new Set(ordem);
+    const mapa = Object.fromEntries(S.potes.map(p => [p.id, p]));
+    let k = 0;
+    S.potes = S.potes.map(p => visiveis.has(p.id) ? mapa[ordem[k++]] : p);
     el = null; save(); render();
   };
   lista.addEventListener("pointerdown", ev => {
