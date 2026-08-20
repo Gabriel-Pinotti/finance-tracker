@@ -46,26 +46,53 @@
   button.smash{border-color:#4a3320;color:var(--gold)}
   button.smash:hover{background:#2a2113;border-color:#6b4a24}
 
-  .potes{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(255px,1fr))}
-  .pote{
-    background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 16px;
-    display:flex;flex-direction:column;gap:10px;position:relative;transition:.25s;
+  .livrebox{
+    background:linear-gradient(180deg,#1e1b14,#171a21);border:1px solid #3a3320;
+    border-radius:14px;padding:16px 18px;margin-bottom:18px;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;transition:.25s;
   }
-  .pote.is-livre{background:linear-gradient(180deg,#1c1a14,#171a21);border-color:#3a3320}
-  .pote.flash{border-color:var(--livre);box-shadow:0 0 0 3px #fbbf2426}
-  .pote-nome{font-weight:600;font-size:15px;display:flex;align-items:center;gap:7px}
+  .livrebox.flash{border-color:var(--livre);box-shadow:0 0 0 3px #fbbf2426}
+  .lb-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--livre);
+    cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .lb-val{font-size:31px;font-weight:680;font-variant-numeric:tabular-nums;letter-spacing:-.025em;line-height:1.15}
+  .lb-val.neg{color:var(--danger)}
+  .lb-sub{font-size:12.5px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums}
+  .lb-acts{display:flex;gap:6px}
+
+  /* ---- chips de tag ---- */
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .chip{font-size:12.5px;padding:4px 11px;border-radius:99px;border:1px solid var(--line);
+    background:transparent;color:var(--muted);cursor:pointer}
+  .chip:hover{color:var(--text);border-color:#39404e}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#04211d;font-weight:600}
+
+  /* ---- lista de potes ---- */
+  .potes{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 14px;position:relative;
+    border-bottom:1px solid var(--line);cursor:pointer;transition:background .12s}
+  .row:last-child{border-bottom:none}
+  .row:hover{background:var(--card2)}
+  .row.dragging{opacity:.55;background:var(--card2)}
+  .grip{color:var(--dim);cursor:grab;touch-action:none;padding:0 2px;line-height:1;
+    font-size:15px;letter-spacing:-2px;user-select:none;flex:none}
+  .grip:active{cursor:grabbing}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
-  .is-livre .dot{background:var(--livre)}
-  .pote-saldo{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.15}
-  .pote-saldo.neg{color:var(--danger)}
-  .pote-sub{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .rname{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rtags{display:flex;gap:5px;flex-wrap:nowrap;overflow:hidden;flex:1;min-width:0;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 16px),transparent)}
+  .rtag{font-size:11.5px;color:var(--dim);border:1px solid var(--line);border-radius:99px;
+    padding:1px 8px;white-space:nowrap}
+  .rval{font-variant-numeric:tabular-nums;font-weight:650;font-size:15px;white-space:nowrap}
+  .rval.neg{color:var(--danger)}
+  .chev{color:var(--dim);flex:none;font-size:15px;line-height:1}
+  .rbar{position:absolute;left:0;bottom:0;height:2px;background:var(--accent);opacity:.75;transition:.4s}
+  .pote-sub{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .meter{height:5px;border-radius:3px;background:#232832;overflow:hidden}
   .meter i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:.4s}
-  .pote-acts{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding-top:6px}
-  .acts-row{display:flex;gap:6px}
-  .acts-row.main button{flex:1}
-  .acts-row.sub{justify-content:space-between;border-top:1px solid var(--line);padding-top:7px}
-  .acts-row.sub .right{display:flex;gap:6px}
+  .acts-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .acts-grid button{width:100%}
+  .acts-grid .full{grid-column:1 / -1}
 
   h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:30px 0 10px;font-weight:600}
   .hist{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
@@ -170,11 +197,19 @@
 <div class="wrap">
   <header>
     <h1>Potes<span id="sub"></span></h1>
-    <div class="totalbox">
-      <div class="lbl">Total</div>
-      <div class="val" id="total">—</div>
-    </div>
   </header>
+
+  <section class="livrebox" id="livrebox">
+    <div>
+      <div class="lb-lbl" id="livreNome"></div>
+      <div class="lb-val" id="livreVal"></div>
+      <div class="lb-sub" id="livreSub"></div>
+    </div>
+    <div class="lb-acts">
+      <button class="mini" id="bGasto">− Gasto</button>
+      <button class="mini" id="bEntrada">+ Entrada</button>
+    </div>
+  </section>
 
   <div class="bar">
     <button class="primary" id="bReceber">Entrada mensal</button>
@@ -187,6 +222,7 @@
     </span>
   </div>
 
+  <div class="chips" id="chips"></div>
   <div class="potes" id="potes"></div>
 
   <h2>Histórico</h2>
@@ -245,6 +281,11 @@ const byId  = id => S.potes.find(p => p.id === id);
 const livre = () => S.potes.find(p => p.livre);
 const total = () => S.potes.reduce((a,p) => a + p.saldo, 0);
 const somaAportes = () => S.potes.filter(p => !p.livre).reduce((a,p) => a + p.aporte, 0);
+/* o Livre nao entra na lista: ele mora no bloco de cima */
+const guardados = () => S.potes.filter(p => !p.livre);
+const tagsDe = p => Array.isArray(p.tags) ? p.tags : [];
+const todasTags = () => [...new Set(guardados().flatMap(tagsDe))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
+let filtro = "";
 
 /* ---------- movimentos ---------- */
 function commit(desc, movs){
@@ -266,11 +307,12 @@ function undo(hid){
 
 /* ---------- modal ---------- */
 const dlg = document.getElementById("dlg");
-function modal({title, body, okLabel="Salvar", okKind="", onOk}){
+function modal({title, body, okLabel="Salvar", okKind="", soloOk=false, onOk}){
   dlg.innerHTML =
     '<form method="dialog"><div class="d-head">'+esc(title)+'</div>'+
     '<div class="d-body">'+body+'</div>'+
-    '<div class="d-foot"><button value="cancel" class="ghost">Cancelar</button>'+
+    '<div class="d-foot">'+
+    (soloOk ? '' : '<button value="cancel" class="ghost">Cancelar</button>')+
     '<button value="ok" class="primary '+okKind+'">'+esc(okLabel)+'</button></div></form>';
   dlg.querySelector("form").addEventListener("submit", ev => {
     if(ev.submitter && ev.submitter.value === "ok" && onOk && onOk(dlg) === false) ev.preventDefault();
@@ -353,6 +395,7 @@ function abrirResgatar(poteId){
   });
 }
 
+/* dinheiro entra e sai do sistema — direto do pote onde ele estava */
 function abrirFluxo(poteId, sinal){
   const p = byId(poteId);
   const d = modal({title: sinal<0 ? (p.livre ? "Gasto" : "Gasto de "+p.nome) : "Entrada",
@@ -393,13 +436,17 @@ function abrirTransf(fromId){
   }
 }
 
+const lerTags = txt => [...new Set(String(txt||"").split(",")
+  .map(t => t.trim().toLowerCase()).filter(Boolean))].slice(0, 6);
+
 function abrirPote(poteId){
   const p = poteId ? byId(poteId) : null, isLivre = p && p.livre;
   const d = modal({title: p ? "Editar "+p.nome : "Novo pote", body:
     '<div><label>Nome</label><input id="n" value="'+(p?esc(p.nome):"")+'" placeholder="Viagem"></div>'+
     (isLivre ? '' :
     '<div><label>Aporte mensal</label><input id="a" inputmode="decimal" value="'+(p?(p.aporte/100).toFixed(2).replace(".",","):"")+'" placeholder="0,00"></div>'+
-    '<div><label>Meta (deixe vazio pra não ter)</label><input id="m" inputmode="decimal" value="'+(p&&p.meta?(p.meta/100).toFixed(2).replace(".",","):"")+'"></div>')+
+    '<div><label>Meta (deixe vazio pra não ter)</label><input id="m" inputmode="decimal" value="'+(p&&p.meta?(p.meta/100).toFixed(2).replace(".",","):"")+'"></div>'+
+    '<div><label>Tags (vírgula)</label><input id="t" value="'+(p?esc(tagsDe(p).join(", ")):"")+'" placeholder="mercado, fixo"></div>')+
     (p ? '' : '<div><label>Saldo inicial</label><input id="s" inputmode="decimal" placeholder="0,00"></div>'),
     onOk:(d)=>{
       const nome = d.querySelector("#n").value.trim();
@@ -409,19 +456,22 @@ function abrirPote(poteId){
         if(!isLivre){
           const a = parseMoney(d.querySelector("#a").value); p.aporte = Number.isFinite(a)&&a>0 ? a : 0;
           const m = parseMoney(d.querySelector("#m").value); p.meta   = Number.isFinite(m)&&m>0 ? m : 0;
+          p.tags = lerTags(d.querySelector("#t").value);
         }
         save(); render();
       }else{
         const a = parseMoney(d.querySelector("#a").value);
         const m = parseMoney(d.querySelector("#m").value);
         const s = parseMoney(d.querySelector("#s").value);
-        const np = {id:uid(), nome, aporte:Number.isFinite(a)&&a>0?a:0, saldo:0, meta:Number.isFinite(m)&&m>0?m:0, livre:false};
+        const np = {id:uid(), nome, aporte:Number.isFinite(a)&&a>0?a:0, saldo:0,
+                    meta:Number.isFinite(m)&&m>0?m:0, tags:lerTags(d.querySelector("#t").value), livre:false};
         S.potes.push(np);
         S.potes.sort((x,y)=> (x.livre?1:0)-(y.livre?1:0));
         if(Number.isFinite(s) && s>0) commit("Criou "+nome, [{poteId:livre().id,delta:-s},{poteId:np.id,delta:s}]);
         else { save(); render(); }
       }
     }});
+  /* Excluir mora aqui dentro pra nao poluir o card */
   if(p && !isLivre){
     const b = document.createElement("button");
     b.className = "ghost danger"; b.textContent = "Excluir";
@@ -429,6 +479,46 @@ function abrirPote(poteId){
     b.onclick = ev => { ev.preventDefault(); dlg.close(); excluirPote(poteId); };
     d.querySelector(".d-foot").prepend(b);
   }
+}
+
+/* menu do pote: a linha e compacta, as acoes moram aqui */
+function abrirAcoes(poteId){
+  const p = byId(poteId);
+  if(!p || p.livre) return;
+  const pct   = p.meta > 0 ? Math.max(0, Math.min(100, p.saldo/p.meta*100)) : null;
+  const meses = (p.meta > 0 && p.aporte > 0 && p.saldo < p.meta) ? Math.ceil((p.meta-p.saldo)/p.aporte) : null;
+  const cheio = p.meta > 0 && p.saldo >= p.meta;
+  const d = modal({title:p.nome, okLabel:"Fechar", soloOk:true, body:
+    '<div class="lb-val'+(p.saldo<0?" neg":"")+'">'+fmt(p.saldo)+'</div>'+
+    '<div class="pote-sub"><span>'+(p.aporte?fmt(p.aporte)+"/mês":"")+'</span>'+
+      (p.meta?'<span>'+fmt(p.meta)+'</span>':'')+'</div>'+
+    (pct!==null?'<div class="meter"><i style="width:'+pct.toFixed(1)+'%"></i></div>':'')+
+    (meses!==null?'<div class="hint">'+meses+' '+(meses===1?"mês":"meses")+'</div>':'')+
+    (cheio?'<div class="hint" style="color:var(--accent)">meta batida</div>':'')+
+    '<div class="acts-grid">'+
+      '<button data-go="guardar">+ Guardar</button>'+
+      '<button data-go="gastei">− Gasto</button>'+
+      '<button data-go="resgatar">Resgatar</button>'+
+      '<button class="smash" data-go="quebrar"'+(p.saldo<=0?" disabled":"")+'>Quebrar</button>'+
+      '<button class="ghost full" data-go="edit">Editar</button>'+
+    '</div>'});
+  d.querySelectorAll("[data-go]").forEach(b => b.onclick = ev => {
+    ev.preventDefault(); dlg.close();
+    const go = b.dataset.go;
+    if(go==="guardar")  abrirGuardar(poteId);
+    if(go==="gastei")   abrirFluxo(poteId, -1);
+    if(go==="resgatar") abrirResgatar(poteId);
+    if(go==="quebrar")  abrirQuebrar(poteId);
+    if(go==="edit")     abrirPote(poteId);
+  });
+}
+
+function renderChips(){
+  const tags = todasTags(), el = document.getElementById("chips");
+  if(filtro && !tags.includes(filtro)) filtro = "";
+  el.innerHTML = tags.map(t =>
+    '<button class="chip'+(filtro===t?" on":"")+'" data-tag="'+esc(t)+'">'+esc(t)+'</button>').join("");
+  el.hidden = tags.length === 0;
 }
 
 function excluirPote(poteId){
@@ -501,7 +591,7 @@ function quebrar(poteId, apagar){
       S.potes = S.potes.filter(x=>x.id!==poteId);
       save(); render();
     }
-    const card = document.querySelector(".pote.is-livre");
+    const card = document.getElementById("livrebox");
     if(card){ card.classList.add("flash"); setTimeout(()=>card.classList.remove("flash"), 900); }
   }, tBreak + (reduz?20:180));
   setTimeout(()=>{ fx.classList.add("out"); setTimeout(()=>fx.remove(), 460); }, reduz ? 900 : 2000);
@@ -716,46 +806,34 @@ function renderPersistNote(){
   n.style.color = msg ? "var(--danger)" : "";
 }
 function render(){
-  document.getElementById("total").textContent = fmt(total());
+  const L = livre();
   document.getElementById("rendaLbl").textContent = fmt(S.renda);
   document.getElementById("sub").textContent =
     fmt(somaAportes()) + " guardados · " + fmt(S.renda - somaAportes()) + " livres por mês";
 
-  document.getElementById("potes").innerHTML = potes().map(p => {
+  document.getElementById("livreNome").textContent = L.nome;
+  const lv = document.getElementById("livreVal");
+  lv.textContent = fmt(L.saldo);
+  lv.classList.toggle("neg", L.saldo < 0);
+  document.getElementById("livreSub").textContent =
+    "de " + fmt(total()) + " · " + fmt(total() - L.saldo) + " nos potes";
+
+  renderChips();
+
+  const lista = guardados().filter(p => !filtro || tagsDe(p).includes(filtro));
+  document.getElementById("potes").innerHTML = lista.length === 0
+    ? '<div class="empty">'+(filtro ? "Nenhum pote com essa tag." : "Nenhum pote ainda.")+'</div>'
+    : lista.map(p => {
     const pct = p.meta > 0 ? Math.max(0, Math.min(100, p.saldo/p.meta*100)) : null;
-    const meses = (p.meta > 0 && p.aporte > 0 && p.saldo < p.meta) ? Math.ceil((p.meta-p.saldo)/p.aporte) : null;
-    const cheio = p.meta > 0 && p.saldo >= p.meta;
-    return '<div class="pote'+(p.livre?" is-livre":"")+'">'+
-      '<div class="pote-nome"><span class="dot"></span>'+esc(p.nome)+'</div>'+
-      '<div class="pote-saldo'+(p.saldo<0?" neg":"")+'">'+fmt(p.saldo)+'</div>'+
-      (p.livre
-        ? ''
-        : '<div class="pote-sub"><span>'+(p.aporte?fmt(p.aporte)+"/mês":"")+'</span>'+
-          (p.meta?'<span>'+fmt(p.meta)+'</span>':'')+'</div>'+
-          (pct!==null?'<div class="meter"><i style="width:'+pct.toFixed(1)+'%"></i></div>':'')+
-          (meses!==null?'<div class="pote-sub"><span>'+meses+' '+(meses===1?"mês":"meses")+'</span></div>':'')+
-          (cheio?'<div class="pote-sub"><span style="color:var(--accent)">meta batida</span></div>':'')
-      )+
-      '<div class="pote-acts">'+
-        (p.livre
-          ? '<div class="acts-row main">'+
-              '<button class="mini" data-act="gastei" data-id="'+p.id+'">− Gasto</button>'+
-              '<button class="mini" data-act="entrou" data-id="'+p.id+'">+ Entrada</button>'+
-            '</div>'+
-            '<div class="acts-row sub"><span></span><span class="right">'+
-              '<button class="mini ghost" data-act="edit" data-id="'+p.id+'">Editar</button>'+
-            '</span></div>'
-          : '<div class="acts-row main">'+
-              '<button class="mini" data-act="guardar" data-id="'+p.id+'">+ Guardar</button>'+
-              '<button class="mini" data-act="gastei" data-id="'+p.id+'">− Gasto</button>'+
-            '</div>'+
-            '<div class="acts-row sub">'+
-              '<button class="mini smash" data-act="quebrar" data-id="'+p.id+'"'+(p.saldo<=0?" disabled":"")+'>Quebrar</button>'+
-              '<span class="right">'+
-                '<button class="mini ghost" data-act="resgatar" data-id="'+p.id+'">Resgatar</button>'+
-                '<button class="mini ghost" data-act="edit" data-id="'+p.id+'">Editar</button>'+
-              '</span></div>')+
-      '</div></div>';
+    return '<div class="row" data-row="'+p.id+'">'+
+      (filtro ? '' : '<span class="grip" aria-hidden="true">⠿</span>')+
+      '<span class="dot"></span>'+
+      '<span class="rname">'+esc(p.nome)+'</span>'+
+      '<span class="rtags">'+tagsDe(p).map(t=>'<span class="rtag">'+esc(t)+'</span>').join("")+'</span>'+
+      '<span class="rval'+(p.saldo<0?" neg":"")+'">'+fmt(p.saldo)+'</span>'+
+      '<span class="chev">›</span>'+
+      (pct!==null?'<i class="rbar" style="width:'+pct.toFixed(1)+'%"></i>':'')+
+    '</div>';
   }).join("");
 
   const h = document.getElementById("hist");
@@ -775,6 +853,52 @@ function render(){
   renderPersistNote();
 }
 
+/* clique na linha abre o menu do pote; no chip, filtra */
+document.getElementById("potes").addEventListener("click", ev => {
+  if(ev.target.closest(".grip")) return;
+  const row = ev.target.closest(".row");
+  if(row) abrirAcoes(row.dataset.row);
+});
+document.getElementById("chips").addEventListener("click", ev => {
+  const c = ev.target.closest(".chip");
+  if(!c) return;
+  filtro = (filtro === c.dataset.tag) ? "" : c.dataset.tag;
+  render();
+});
+
+/* arrastar pela alcinha — pointer events pra funcionar no toque tambem */
+(function(){
+  const lista = document.getElementById("potes");
+  let el = null;
+  const mover = ev => {
+    const alvo = document.elementFromPoint(ev.clientX, ev.clientY);
+    const row = alvo && alvo.closest(".row");
+    if(!row || row === el || row.parentNode !== el.parentNode) return;
+    const r = row.getBoundingClientRect();
+    row.parentNode.insertBefore(el, ev.clientY > r.top + r.height/2 ? row.nextSibling : row);
+  };
+  const soltar = () => {
+    document.removeEventListener("pointermove", mover);
+    if(!el) return;
+    el.classList.remove("dragging");
+    const ordem = [...lista.querySelectorAll(".row")].map(r => r.dataset.row);
+    S.potes.sort((a,b) => {
+      if(a.livre !== b.livre) return a.livre ? 1 : -1;
+      return ordem.indexOf(a.id) - ordem.indexOf(b.id);
+    });
+    el = null; save(); render();
+  };
+  lista.addEventListener("pointerdown", ev => {
+    if(!ev.target.closest(".grip")) return;
+    ev.preventDefault();
+    el = ev.target.closest(".row");
+    el.classList.add("dragging");
+    document.addEventListener("pointermove", mover);
+    document.addEventListener("pointerup", soltar, {once:true});
+    document.addEventListener("pointercancel", soltar, {once:true});
+  });
+})();
+
 document.addEventListener("click", ev => {
   const b = ev.target.closest("button[data-act]");
   if(!b) return;
@@ -788,6 +912,9 @@ document.addEventListener("click", ev => {
   if(act==="del")      excluirPote(id);
   if(act==="undo")     undo(id);
 });
+document.getElementById("bGasto").onclick    = () => abrirFluxo(livre().id, -1);
+document.getElementById("bEntrada").onclick  = () => abrirFluxo(livre().id, +1);
+document.getElementById("livreNome").onclick = () => abrirPote(livre().id);
 document.getElementById("bReceber").onclick = abrirReceber;
 document.getElementById("bNovo").onclick    = () => abrirPote(null);
 document.getElementById("bTransf").onclick  = () => abrirTransf(null);
