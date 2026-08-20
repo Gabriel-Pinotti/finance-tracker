@@ -177,7 +177,7 @@
   </header>
 
   <div class="bar">
-    <button class="primary" id="bReceber">Recebi dinheiro</button>
+    <button class="primary" id="bReceber">Entrada mensal</button>
     <button id="bNovo">Novo pote</button>
     <button id="bTransf" class="ghost">Transferir</button>
     <button id="bRenda" class="ghost"><b id="rendaLbl"></b>/mês</button>
@@ -293,7 +293,7 @@ function vincularPreview(d, calc){
 
 /* ---------- acoes ---------- */
 function abrirReceber(){
-  const d = modal({title:"Recebi dinheiro", okLabel:"Distribuir", body:
+  const d = modal({title:"Entrada mensal", okLabel:"Distribuir", body:
     '<div><label>Quanto entrou</label><input id="v" inputmode="decimal" value="'+(S.renda/100).toFixed(2).replace(".",",")+'"></div>'+
     '<div><label>Referência</label><input id="d" placeholder="Salário de setembro"></div>'+
     '<div class="preview" id="pv"></div>',
@@ -353,22 +353,23 @@ function abrirResgatar(poteId){
   });
 }
 
-/* no Livre: dinheiro entra e sai do sistema */
-function abrirLivreMov(sinal){
-  const L = livre();
-  const d = modal({title: sinal<0 ? "Gastei" : "Entrou dinheiro", okLabel:"Confirmar", body:
+function abrirFluxo(poteId, sinal){
+  const p = byId(poteId);
+  const d = modal({title: sinal<0 ? (p.livre ? "Gasto" : "Gasto de "+p.nome) : "Entrada",
+    okLabel:"Confirmar", body:
     '<div><label>Valor</label><input id="v" inputmode="decimal" placeholder="0,00"></div>'+
     '<div><label>Descrição (opcional)</label><input id="d" placeholder="'+(sinal<0?"Mercado":"Freela")+'"></div>'+
     '<div class="hint" id="pv"></div>',
     onOk:(d)=>{
       const v = parseMoney(d.querySelector("#v").value);
       if(!Number.isFinite(v) || v <= 0) return false;
-      const desc = d.querySelector("#d").value.trim() || (sinal<0 ? "Gasto" : "Entrada avulsa");
-      commit(desc, [{poteId:L.id, delta:sinal*v}]);
+      const desc = d.querySelector("#d").value.trim() ||
+        (sinal<0 ? (p.livre ? "Gasto" : "Gasto · "+p.nome) : "Entrada avulsa");
+      commit(desc, [{poteId:p.id, delta:sinal*v}]);
     }});
   vincularPreview(d, v => {
-    const rest = L.saldo + sinal*v;
-    return esc(L.nome)+' <b class="'+(rest<0?"neg":"")+'">'+fmt(rest)+'</b>';
+    const rest = p.saldo + sinal*v;
+    return esc(p.nome)+' <b class="'+(rest<0?"neg":"")+'">'+fmt(rest)+'</b>';
   });
 }
 
@@ -394,7 +395,7 @@ function abrirTransf(fromId){
 
 function abrirPote(poteId){
   const p = poteId ? byId(poteId) : null, isLivre = p && p.livre;
-  modal({title: p ? "Editar "+p.nome : "Novo pote", body:
+  const d = modal({title: p ? "Editar "+p.nome : "Novo pote", body:
     '<div><label>Nome</label><input id="n" value="'+(p?esc(p.nome):"")+'" placeholder="Viagem"></div>'+
     (isLivre ? '' :
     '<div><label>Aporte mensal</label><input id="a" inputmode="decimal" value="'+(p?(p.aporte/100).toFixed(2).replace(".",","):"")+'" placeholder="0,00"></div>'+
@@ -421,6 +422,13 @@ function abrirPote(poteId){
         else { save(); render(); }
       }
     }});
+  if(p && !isLivre){
+    const b = document.createElement("button");
+    b.className = "ghost danger"; b.textContent = "Excluir";
+    b.style.marginRight = "auto";
+    b.onclick = ev => { ev.preventDefault(); dlg.close(); excluirPote(poteId); };
+    d.querySelector(".d-foot").prepend(b);
+  }
 }
 
 function excluirPote(poteId){
@@ -731,21 +739,21 @@ function render(){
       '<div class="pote-acts">'+
         (p.livre
           ? '<div class="acts-row main">'+
-              '<button class="mini" data-act="gastei">− Gastei</button>'+
-              '<button class="mini" data-act="entrou">+ Entrou</button>'+
+              '<button class="mini" data-act="gastei" data-id="'+p.id+'">− Gasto</button>'+
+              '<button class="mini" data-act="entrou" data-id="'+p.id+'">+ Entrada</button>'+
             '</div>'+
             '<div class="acts-row sub"><span></span><span class="right">'+
               '<button class="mini ghost" data-act="edit" data-id="'+p.id+'">Editar</button>'+
             '</span></div>'
           : '<div class="acts-row main">'+
               '<button class="mini" data-act="guardar" data-id="'+p.id+'">+ Guardar</button>'+
-              '<button class="mini" data-act="resgatar" data-id="'+p.id+'">− Resgatar</button>'+
+              '<button class="mini" data-act="gastei" data-id="'+p.id+'">− Gasto</button>'+
             '</div>'+
             '<div class="acts-row sub">'+
               '<button class="mini smash" data-act="quebrar" data-id="'+p.id+'"'+(p.saldo<=0?" disabled":"")+'>Quebrar</button>'+
               '<span class="right">'+
+                '<button class="mini ghost" data-act="resgatar" data-id="'+p.id+'">Resgatar</button>'+
                 '<button class="mini ghost" data-act="edit" data-id="'+p.id+'">Editar</button>'+
-                '<button class="mini ghost danger" data-act="del" data-id="'+p.id+'">Excluir</button>'+
               '</span></div>')+
       '</div></div>';
   }).join("");
@@ -774,8 +782,8 @@ document.addEventListener("click", ev => {
   if(act==="guardar")  abrirGuardar(id);
   if(act==="resgatar") abrirResgatar(id);
   if(act==="quebrar")  abrirQuebrar(id);
-  if(act==="gastei")   abrirLivreMov(-1);
-  if(act==="entrou")   abrirLivreMov(+1);
+  if(act==="gastei")   abrirFluxo(id, -1);
+  if(act==="entrou")   abrirFluxo(id, +1);
   if(act==="edit")     abrirPote(id);
   if(act==="del")      excluirPote(id);
   if(act==="undo")     undo(id);
