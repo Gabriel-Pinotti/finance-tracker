@@ -880,7 +880,12 @@ function render(){
     : lista.map(p => {
     const temMeta = p.meta > 0;
     const pct   = temMeta ? Math.max(0, Math.min(100, p.saldo/p.meta*100)) : null;
-    const meses = (temMeta && p.aporte > 0 && p.saldo < p.meta) ? Math.ceil((p.meta-p.saldo)/p.aporte) : null;
+    const falta = temMeta ? p.meta - p.saldo : 0;
+    /* tres casos distintos: ja completou, da pra estimar, ou nao da (sem aporte) */
+    const prazo = !temMeta ? ""
+      : falta <= 0        ? "completa"
+      : p.aporte > 0      ? Math.ceil(falta/p.aporte) + " " + (Math.ceil(falta/p.aporte)===1 ? "mês" : "meses")
+      : "";
     return '<div class="row" data-row="'+p.id+'">'+
       (filtro ? '' : '<span class="grip" aria-hidden="true">⠿</span>')+
       '<span class="dot"></span>'+
@@ -894,7 +899,7 @@ function render(){
               '<span class="meter"><i style="width:'+pct.toFixed(1)+'%"></i></span>'+
               '<span class="rpct">'+Math.round(pct)+'%</span>'+
               '<span class="rgoal">de '+fmt(p.meta)+'</span>'+
-              '<span class="rmeses">'+(meses!==null ? meses+' '+(meses===1?"mês":"meses") : "completa")+'</span>'+
+              (prazo ? '<span class="rmeses">'+prazo+'</span>' : '')+
             '</div>'
           : '')+
       '</div>'+
