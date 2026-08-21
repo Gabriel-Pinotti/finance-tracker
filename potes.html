@@ -344,8 +344,11 @@ function modal({title, body, okLabel="Salvar", okKind="", soloOk=false, onOk}){
     '<form method="dialog"><div class="d-head">'+esc(title)+'</div>'+
     '<div class="d-body">'+body+'</div>'+
     '<div class="d-foot">'+
-    (soloOk ? '' : '<button value="cancel" class="ghost">Cancelar</button>')+
-    '<button value="ok" class="primary '+okKind+'">'+esc(okLabel)+'</button></div></form>';
+    /* type=button: so o OK pode ser submit, senao o Enter dispara o Cancelar */
+    (soloOk ? '' : '<button type="button" value="cancel" class="ghost">Cancelar</button>')+
+    '<button type="submit" value="ok" class="primary '+okKind+'">'+esc(okLabel)+'</button></div></form>';
+  const cancelar = dlg.querySelector('button[value="cancel"]');
+  if(cancelar) cancelar.onclick = () => dlg.close("cancel");
   dlg.querySelector("form").addEventListener("submit", ev => {
     if(ev.submitter && ev.submitter.value === "ok" && onOk && onOk(dlg) === false) ev.preventDefault();
   });
@@ -515,9 +518,10 @@ function abrirPote(poteId){
   /* Excluir mora aqui dentro pra nao poluir o card */
   if(p && !isLivre){
     const b = document.createElement("button");
+    b.type = "button";
     b.className = "ghost danger"; b.textContent = "Excluir";
     b.style.marginRight = "auto";
-    b.onclick = ev => { ev.preventDefault(); dlg.close(); excluirPote(poteId); };
+    b.onclick = () => { dlg.close(); excluirPote(poteId); };
     d.querySelector(".d-foot").prepend(b);
   }
 }
@@ -537,11 +541,14 @@ function abrirAcoes(poteId){
     (meses!==null?'<div class="hint">'+meses+' '+(meses===1?"mês":"meses")+'</div>':'')+
     (cheio?'<div class="hint" style="color:var(--accent)">meta batida</div>':'')+
     '<div class="acts-grid">'+
-      '<button data-go="guardar">+ Guardar</button>'+
-      '<button data-go="gastei">− Gasto</button>'+
-      '<button data-go="resgatar">Resgatar</button>'+
-      '<button class="smash" data-go="quebrar"'+(p.saldo<=0?" disabled":"")+'>Quebrar</button>'+
-      '<button class="ghost full" data-go="edit">Editar</button>'+
+      '<button type="button" data-go="guardar">+ Guardar</button>'+
+      '<button type="button" data-go="gastei">− Gasto</button>'+
+      '<button type="button" data-go="resgatar">Resgatar</button>'+
+      /* quebrar cofrinho so faz sentido em poupanca */
+      (tipoDe(p)==="poupanca"
+        ? '<button type="button" class="smash" data-go="quebrar"'+(p.saldo<=0?" disabled":"")+'>Quebrar</button>'
+        : '')+
+      '<button type="button" class="ghost'+(tipoDe(p)==="poupanca"?" full":"")+'" data-go="edit">Editar</button>'+
     '</div>'});
   d.querySelectorAll("[data-go]").forEach(b => b.onclick = ev => {
     ev.preventDefault(); dlg.close();
@@ -582,7 +589,7 @@ function excluirPote(poteId){
 /* ---------- quebrar o cofrinho ---------- */
 function abrirQuebrar(poteId){
   const p = byId(poteId);
-  if(p.livre || p.saldo <= 0) return;
+  if(!p || p.livre || p.saldo <= 0 || tipoDe(p) !== "poupanca") return;
   modal({title:"Quebrar o cofrinho?", okLabel:"Quebrar", okKind:"gold", body:
     '<div class="hint">'+fmt(p.saldo)+' &rarr; '+esc(livre().nome)+'</div>'+
     '<div><label><input type="checkbox" id="rm" style="width:auto;margin-right:7px;vertical-align:-1px">Apagar o pote</label></div>',
@@ -766,8 +773,9 @@ function conflito(remoto, rTs){
       ' · Aqui '+fmt(total())+'</div>',
     onOk:()=>{ adotar(remoto, rTs); marcar("on"); }});
   const b = document.createElement("button");
+  b.type = "button";
   b.className = "ghost"; b.textContent = "Manter este";
-  b.onclick = ev => { ev.preventDefault(); dlg.close();
+  b.onclick = () => { dlg.close();
     lastSync = rTs; subir().then(()=>marcar("on")).catch(e=>marcar("err",String(e.message||e))); };
   d.querySelector(".d-foot").prepend(b);
 }
